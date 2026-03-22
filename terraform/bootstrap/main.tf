@@ -36,6 +36,13 @@ module "terraform_state_bucket" {
     }
   }
 
+  attach_deny_insecure_transport_policy = true
+
+  logging = {
+    target_bucket = var.state_bucket_name
+    target_prefix = "access-logs/"
+  }
+
   tags = {
     Name      = var.state_bucket_name
     ManagedBy = "terraform"

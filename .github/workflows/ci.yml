@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.10"
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive terraform/
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: tflint init
+        run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: tflint
+        run: tflint --recursive
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: terraform/
+          exit-code: 1
+          severity: HIGH,CRITICAL
+
+  plan:
+    name: Plan / ${{ matrix.environment }}
+    needs: [lint, security]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - environment: management
+          - environment: dev
+          - environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.10"
+
+      - name: Terraform Init
+        working-directory: terraform/environments/${{ matrix.environment }}
+        env:
+          TF_CLI_ARGS_init: >-
+            -backend-config=bucket=${{ secrets.TF_STATE_BUCKET }}
+            -backend-config=key=${{ matrix.environment }}/terraform.tfstate
+            -backend-config=region=ap-northeast-1
+            -backend-config=encrypt=true
+            -backend-config=use_lockfile=true
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: terraform/environments/${{ matrix.environment }}
+        env:
+          TF_VAR_organization_email_domain: ${{ secrets.TF_VAR_ORGANIZATION_EMAIL_DOMAIN }}
+          TF_VAR_dev_account_email: ${{ secrets.TF_VAR_DEV_ACCOUNT_EMAIL }}
+          TF_VAR_prod_account_email: ${{ secrets.TF_VAR_PROD_ACCOUNT_EMAIL }}
+          TF_VAR_account_id: ${{ matrix.environment == 'dev' && secrets.DEV_ACCOUNT_ID || secrets.PROD_ACCOUNT_ID }}
+        run: terraform plan -input=false -no-color

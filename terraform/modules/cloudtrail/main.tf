@@ -12,6 +12,29 @@ terraform {
 data "aws_caller_identity" "current" {}
 
 # -------------------------------------------------------------------
+# S3 バケット: CloudTrail バケットのアクセスログ保存用
+# -------------------------------------------------------------------
+module "cloudtrail_access_logs_bucket" {
+  source  = "terraform-aws-modules/s3-bucket/aws"
+  version = "~> 4.0"
+
+  bucket = "cloudtrail-logs-${data.aws_caller_identity.current.account_id}-${var.aws_region}-access-logs"
+
+  attach_deny_insecure_transport_policy = true
+  attach_access_log_delivery_policy     = true
+  access_log_delivery_policy_source_buckets = [
+    "arn:aws:s3:::cloudtrail-logs-${data.aws_caller_identity.current.account_id}-${var.aws_region}",
+  ]
+
+  force_destroy = true
+
+  tags = {
+    ManagedBy = "terraform"
+    Purpose   = "cloudtrail-access-logs"
+  }
+}
+
+# -------------------------------------------------------------------
 # S3 バケット: CloudTrail ログ保存用
 # -------------------------------------------------------------------
 module "cloudtrail_bucket" {
@@ -39,7 +62,7 @@ module "cloudtrail_bucket" {
   attach_deny_insecure_transport_policy = true
 
   logging = {
-    target_bucket = "cloudtrail-logs-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
+    target_bucket = module.cloudtrail_access_logs_bucket.s3_bucket_id
     target_prefix = "access-logs/"
   }
 

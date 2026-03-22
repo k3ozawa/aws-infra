@@ -16,6 +16,29 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 
 # -------------------------------------------------------------------
+# S3 バケット: state バケットのアクセスログ保存用
+# -------------------------------------------------------------------
+module "state_access_logs_bucket" {
+  source  = "terraform-aws-modules/s3-bucket/aws"
+  version = "~> 4.0"
+
+  bucket = "${var.state_bucket_name}-access-logs"
+
+  attach_deny_insecure_transport_policy = true
+  attach_access_log_delivery_policy     = true
+  access_log_delivery_policy_source_buckets = [
+    "arn:aws:s3:::${var.state_bucket_name}",
+  ]
+
+  force_destroy = true
+
+  tags = {
+    ManagedBy = "terraform"
+    Purpose   = "state-access-logs"
+  }
+}
+
+# -------------------------------------------------------------------
 # S3 バケット: Terraform state 保存用
 # -------------------------------------------------------------------
 module "terraform_state_bucket" {
@@ -39,7 +62,7 @@ module "terraform_state_bucket" {
   attach_deny_insecure_transport_policy = true
 
   logging = {
-    target_bucket = var.state_bucket_name
+    target_bucket = module.state_access_logs_bucket.s3_bucket_id
     target_prefix = "access-logs/"
   }
 

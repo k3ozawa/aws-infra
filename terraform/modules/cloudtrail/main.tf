@@ -13,12 +13,17 @@ data "aws_caller_identity" "current" {}
 
 # -------------------------------------------------------------------
 # S3 バケット: CloudTrail バケットのアクセスログ保存用
+# kics-scan ignore-block: このバケット自身のアクセスログを有効化すると循環ロギングになるため意図的に無効
 # -------------------------------------------------------------------
 module "cloudtrail_access_logs_bucket" {
   source  = "terraform-aws-modules/s3-bucket/aws"
   version = "~> 4.0"
 
   bucket = "cloudtrail-logs-${data.aws_caller_identity.current.account_id}-${var.aws_region}-access-logs"
+
+  versioning = {
+    enabled = true
+  }
 
   attach_deny_insecure_transport_policy = true
   attach_access_log_delivery_policy     = true

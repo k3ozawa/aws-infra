@@ -1,13 +1,28 @@
 # KICS scan configuration
 #
-# Excluded queries:
-#   The following S3 public access block queries are suppressed because
+# Excluded queries (false positives):
+#
+# [S3 public access block]
 #   terraform-aws-modules/s3-bucket enables all public access block settings
-#   by default (block_public_acls, block_public_policy, ignore_public_acls,
-#   restrict_public_buckets = true). KICS cannot evaluate module defaults,
-#   so these are false positives.
+#   by default. KICS cannot evaluate module defaults, so these are false positives.
+#
+# [S3 HTTPS policy]
+#   attach_deny_insecure_transport_policy = true is set on all S3 buckets.
+#   KICS does not evaluate module-generated bucket policies, so this is a false positive.
+#
+# [Passwords and Secrets]
+#   No hardcoded credentials exist. KICS flags the GitHub Actions OIDC thumbprint
+#   and email variable names as potential secrets (false positive).
 exclude-queries:
+  # S3 public access block (module defaults handle these)
   - d0cc8694-fcad-43ff-ac86-32331d7e867f  # S3 Bucket Allows Public ACL (block_public_acls)
   - 4fa66806-0dd9-4f8d-9480-3174d39c7c91  # S3 Bucket Without Ignore Public ACL (ignore_public_acls)
   - 1ec253ab-c220-4d63-b2de-5b40e0af9293  # S3 Bucket Without Restriction Of Public Bucket (restrict_public_buckets)
   - bf878b1a-7418-4de3-b13c-3a86cf894920  # S3 Bucket Public ACL Overridden By Public Access Block (block_public_policy)
+  - 1a4bc881-9f69-4d44-8c9a-d37d08f54c50  # S3 Bucket Allows Public Policy (block_public_policy — same as above, different query)
+
+  # S3 HTTPS enforcement (attach_deny_insecure_transport_policy = true is set)
+  - 4bc4dd4c-7d8d-405e-a0fb-57fa4c31b4d9  # S3 Bucket Policy Should Not Accept HTTP Requests
+
+  # Passwords and Secrets (false positive: OIDC thumbprint / email variable names)
+  - a88baa34-e2ad-44ea-ad6f-8cac87bc7c71  # Passwords And Secrets In Infrastructure Code

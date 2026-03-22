@@ -23,8 +23,14 @@ module "cloudtrail_bucket" {
 
   force_destroy = true
 
-  attach_policy = true
-  policy        = data.aws_iam_policy_document.cloudtrail_s3.json
+  attach_policy                         = true
+  policy                                = data.aws_iam_policy_document.cloudtrail_s3.json
+  attach_deny_insecure_transport_policy = true
+
+  logging = {
+    target_bucket = "cloudtrail-logs-${data.aws_caller_identity.current.account_id}-${var.aws_region}"
+    target_prefix = "access-logs/"
+  }
 
   tags = {
     ManagedBy = "terraform"

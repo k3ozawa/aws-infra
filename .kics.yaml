@@ -10,6 +10,10 @@
 #   attach_deny_insecure_transport_policy = true is set on all S3 buckets.
 #   KICS does not evaluate module-generated bucket policies, so this is a false positive.
 #
+# [S3 server access logging on access-logs buckets]
+#   Dedicated access-logs buckets intentionally have no logging target to avoid
+#   circular logging. All other S3 buckets log to these dedicated buckets.
+#
 # [Passwords and Secrets]
 #   No hardcoded credentials exist. KICS flags the GitHub Actions OIDC thumbprint
 #   and email variable names as potential secrets (false positive).
@@ -23,6 +27,9 @@ exclude-queries:
 
   # S3 HTTPS enforcement (attach_deny_insecure_transport_policy = true is set)
   - 4bc4dd4c-7d8d-405e-a0fb-57fa4c31b4d9  # S3 Bucket Policy Should Not Accept HTTP Requests
+
+  # S3 server access logging (access-logs buckets intentionally omit logging to avoid circular logging)
+  - f861041c-8c9f-4156-acfc-5e6e524f5884  # S3 Bucket Logging Disabled
 
   # Passwords and Secrets (false positive: OIDC thumbprint / email variable names)
   - a88baa34-e2ad-44ea-ad6f-8cac87bc7c71  # Passwords And Secrets In Infrastructure Code

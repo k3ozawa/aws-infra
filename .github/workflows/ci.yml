@@ -34,6 +34,8 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
     steps:
       - uses: actions/checkout@v4
 
@@ -44,6 +46,7 @@ jobs:
           fail_on: high,medium
           output_path: kics-results/
           output_formats: json,sarif
+          config_path: .kics.yaml
 
       - name: Upload KICS results
         uses: github/codeql-action/upload-sarif@v3

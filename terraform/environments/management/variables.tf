@@ -4,11 +4,6 @@ variable "aws_region" {
   default     = "ap-northeast-1"
 }
 
-variable "organization_email_domain" {
-  description = "Organizations のメールアドレスドメイン（例: example.com）"
-  type        = string
-}
-
 variable "dev_account_email" {
   description = "dev アカウントのメールアドレス"
   type        = string

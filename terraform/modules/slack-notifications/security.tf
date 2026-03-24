@@ -6,12 +6,12 @@ resource "aws_cloudwatch_event_rule" "security_hub" {
   description = "Security Hub の HIGH/CRITICAL findings を Slack に通知"
 
   event_pattern = jsonencode({
-    source      = ["aws.securityhub"]
+    source        = ["aws.securityhub"]
     "detail-type" = ["Security Hub Findings - Imported"]
     detail = {
       findings = {
-        Severity = { Label = ["HIGH", "CRITICAL"] }
-        Workflow  = { Status = ["NEW"] }
+        Severity    = { Label = ["HIGH", "CRITICAL"] }
+        Workflow    = { Status = ["NEW"] }
         RecordState = ["ACTIVE"]
       }
     }
@@ -33,7 +33,7 @@ resource "aws_cloudwatch_event_rule" "guardduty" {
   description = "GuardDuty の HIGH/CRITICAL findings を Slack に通知"
 
   event_pattern = jsonencode({
-    source      = ["aws.guardduty"]
+    source        = ["aws.guardduty"]
     "detail-type" = ["GuardDuty Finding"]
     detail = {
       severity = [{ numeric = [">=", 7] }]
@@ -55,7 +55,7 @@ resource "aws_cloudwatch_event_rule" "config_compliance" {
   description = "AWS Config の非準拠リソースを Slack に通知"
 
   event_pattern = jsonencode({
-    source      = ["aws.config"]
+    source        = ["aws.config"]
     "detail-type" = ["Config Rules Compliance Change"]
     detail = {
       newEvaluationResult = {
@@ -79,7 +79,7 @@ resource "aws_cloudwatch_event_rule" "access_analyzer" {
   description = "IAM Access Analyzer の findings を Slack に通知"
 
   event_pattern = jsonencode({
-    source      = ["aws.access-analyzer"]
+    source        = ["aws.access-analyzer"]
     "detail-type" = ["Access Analyzer Finding"]
   })
 }

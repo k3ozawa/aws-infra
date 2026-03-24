@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: KICS
-        uses: Checkmarx/kics-github-action@v2.1.3
+        uses: Checkmarx/kics-github-action@v2.1.20
         with:
           path: terraform/
           fail_on: high,medium

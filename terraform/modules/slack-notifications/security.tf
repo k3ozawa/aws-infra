@@ -16,6 +16,10 @@ resource "aws_cloudwatch_event_rule" "security_hub" {
       }
     }
   })
+
+  tags = {
+    Environment = var.environment
+  }
 }
 
 resource "aws_cloudwatch_event_target" "security_hub" {
@@ -39,6 +43,10 @@ resource "aws_cloudwatch_event_rule" "guardduty" {
       severity = [{ numeric = [">=", 7] }]
     }
   })
+
+  tags = {
+    Environment = var.environment
+  }
 }
 
 resource "aws_cloudwatch_event_target" "guardduty" {
@@ -63,6 +71,10 @@ resource "aws_cloudwatch_event_rule" "config_compliance" {
       }
     }
   })
+
+  tags = {
+    Environment = var.environment
+  }
 }
 
 resource "aws_cloudwatch_event_target" "config_compliance" {
@@ -82,6 +94,10 @@ resource "aws_cloudwatch_event_rule" "access_analyzer" {
     source        = ["aws.access-analyzer"]
     "detail-type" = ["Access Analyzer Finding"]
   })
+
+  tags = {
+    Environment = var.environment
+  }
 }
 
 resource "aws_cloudwatch_event_target" "access_analyzer" {

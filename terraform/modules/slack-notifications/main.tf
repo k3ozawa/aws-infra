@@ -8,11 +8,16 @@ terraform {
   }
 }
 
+data "aws_kms_alias" "sns" {
+  name = "alias/aws/sns"
+}
+
 # -------------------------------------------------------------------
 # SNS: セキュリティ通知トピック（全環境共通）
 # -------------------------------------------------------------------
 resource "aws_sns_topic" "security" {
-  name = "slack-security-notifications-${var.environment}"
+  name              = "slack-security-notifications-${var.environment}"
+  kms_master_key_id = data.aws_kms_alias.sns.target_key_arn
 
   tags = {
     Environment = var.environment
@@ -50,7 +55,8 @@ resource "aws_sns_topic_policy" "security" {
 resource "aws_sns_topic" "cost" {
   count = var.enable_cost_notifications ? 1 : 0
 
-  name = "slack-cost-notifications-${var.environment}"
+  name              = "slack-cost-notifications-${var.environment}"
+  kms_master_key_id = data.aws_kms_alias.sns.target_key_arn
 
   tags = {
     Environment = var.environment

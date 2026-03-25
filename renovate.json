@@ -3,5 +3,19 @@
   "extends": ["config:recommended"],
   "terraform": {
     "enabled": true
-  }
+  },
+  "packageRules": [
+    {
+      "description": "GitHub Actions の自動マージを無効化（存在しないタグへの更新を防ぐ）",
+      "matchManagers": ["github-actions"],
+      "automerge": false,
+      "labels": ["dependencies", "github-actions"]
+    },
+    {
+      "description": "Terraform プロバイダーの自動マージを無効化",
+      "matchManagers": ["terraform"],
+      "automerge": false,
+      "labels": ["dependencies", "terraform"]
+    }
+  ]
 }

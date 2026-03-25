@@ -100,4 +100,8 @@ jobs:
           TF_VAR_dev_account_email: ${{ secrets.TF_VAR_DEV_ACCOUNT_EMAIL }}
           TF_VAR_prod_account_email: ${{ secrets.TF_VAR_PROD_ACCOUNT_EMAIL }}
           TF_VAR_account_id: ${{ matrix.environment == 'dev' && secrets.DEV_ACCOUNT_ID || secrets.PROD_ACCOUNT_ID }}
+          # Slack variables: real values are set via .mise.toml locally;
+          # dummy values are used here so plan can run in CI without secrets.
+          TF_VAR_slack_workspace_id: "ci-placeholder"
+          TF_VAR_slack_channel_id: "ci-placeholder"
         run: terraform plan -input=false -no-color

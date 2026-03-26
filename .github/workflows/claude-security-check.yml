@@ -1,0 +1,66 @@
+name: Claude Security Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > /tmp/changed_files.txt
+          cat /tmp/changed_files.txt
+          git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr_diff.txt
+
+      - name: Claude Security Analysis
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          DIFF=$(cat /tmp/pr_diff.txt | head -c 20000)
+          FILES=$(cat /tmp/changed_files.txt)
+
+          RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -d "$(jq -n \
+              --arg diff "$DIFF" \
+              --arg files "$FILES" \
+              '{
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 2000,
+                messages: [{
+                  role: "user",
+                  content: ("セキュリティの専門家として、以下のコード変更をセキュリティの観点からレビューしてください。\n\n変更ファイル:\n" + $files + "\n\n変更差分:\n```diff\n" + $diff + "\n```\n\n以下を確認してください:\n1. **SQLインジェクション** - SQLクエリへの未検証の入力\n2. **XSS (クロスサイトスクリプティング)** - 未サニタイズの出力\n3. **認証・認可の問題** - 不適切なアクセス制御\n4. **機密情報の露出** - ハードコードされた認証情報、APIキー\n5. **依存関係の脆弱性** - 既知の脆弱性を持つライブラリ\n6. **CSRF脆弱性** - リクエスト偽造の可能性\n7. **パストラバーサル** - 不適切なファイルパス処理\n8. **セキュリティヘッダー** - 欠落しているセキュリティヘッダー\n\n問題が見つかった場合は深刻度（🔴 Critical / 🟠 High / 🟡 Medium / 🟢 Low）を付けてください。\n問題がない場合は ✅ セキュリティ上の問題は見つかりませんでした と記述してください。\n日本語でMarkdown形式で回答してください。")
+                }]
+              }' \
+            )")
+
+          SECURITY_REPORT=$(echo "$RESPONSE" | jq -r '.content[0].text // "セキュリティチェックの生成に失敗しました"')
+
+          COMMENT="## 🔒 Claude セキュリティチェックレポート
+
+          $SECURITY_REPORT
+
+          ---
+          *このセキュリティレポートはClaude AIによって自動生成されました*"
+
+          gh pr comment $PR_NUMBER \
+            --repo $REPO \
+            --body "$COMMENT"

@@ -1,0 +1,68 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR diff
+        id: diff
+        run: |
+          git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr_diff.txt
+          echo "diff_size=$(wc -c < /tmp/pr_diff.txt)" >> $GITHUB_OUTPUT
+
+      - name: Claude PR Review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          REPO: ${{ github.repository }}
+        run: |
+          DIFF=$(cat /tmp/pr_diff.txt | head -c 20000)
+
+          RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -d "$(jq -n \
+              --arg diff "$DIFF" \
+              --arg title "$PR_TITLE" \
+              --arg body "$PR_BODY" \
+              '{
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 2000,
+                messages: [{
+                  role: "user",
+                  content: ("あなたはシニアエンジニアです。以下のPRをレビューしてください。\n\nPRタイトル: " + $title + "\n\nPR説明:\n" + $body + "\n\n変更差分:\n```diff\n" + $diff + "\n```\n\n以下の観点でレビューしてください:\n1. **コードの品質と可読性**\n2. **バグや潜在的な問題**\n3. **パフォーマンスへの影響**\n4. **改善提案**\n\n日本語でMarkdown形式でレビューを書いてください。")
+                }]
+              }' \
+            )")
+
+          REVIEW=$(echo "$RESPONSE" | jq -r '.content[0].text // "レビューの生成に失敗しました"')
+
+          COMMENT="## 🤖 Claude AIレビュー
+
+          $REVIEW
+
+          ---
+          *このレビューはClaude AIによって自動生成されました*"
+
+          gh pr comment $PR_NUMBER \
+            --repo $REPO \
+            --body "$COMMENT"

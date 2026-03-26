@@ -94,3 +94,5 @@ terraform validate         # 構文チェック
 terraform plan             # 変更確認（必ず apply 前に実行）
 terraform apply            # 適用
 ```
+
+<!-- test: claude github app check -->

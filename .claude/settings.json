@@ -1,0 +1,21 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "Running terraform fmt...",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f || exit 0; echo \"$f\" | grep -qE '\\.tf$' || exit 0; mise exec -- terraform fmt \"$f\"; } 2>/dev/null || true"
+          },
+          {
+            "type": "command",
+            "statusMessage": "Running tflint...",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f || exit 0; echo \"$f\" | grep -qE '\\.tf$' || exit 0; cd \"$(dirname \"$f\")\" && mise exec -- tflint .; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 [tools]
 terraform = "1.10"
 awscli = "2.32.0"
+tflint = "latest"
 
 [env]
 AWS_DEFAULT_REGION = "ap-northeast-1"
